@@ -1,31 +1,31 @@
 #include "kernel/types.h"
-#include "kernel/stat.h"
-#include "user/user.h"
- 
-int main(int argc, char *argv[]){
-    int p1[2];
-    int p2[2];
-    pipe(p1);//创建管道
-    pipe(p2);
-    int pid = fork();//创建子进程，子进程会复制父进程
-    if(pid == 0){
-        close(p1[1]);
-        close(p2[0]);      
-        char son[2];       
-        read(p1[0],son,1); //读取管道内容
-        close(p1[0]);
-        printf("%d: received ping\n",getpid());//getpid获取进程ID
-        write(p2[1],"a",2);//向管道写入内容
-        close(p2[1]);
-    }else if(pid > 0){
-        close(p1[0]);
-        close(p2[1]);      
-        write(p1[1],"a",2); 
-        close(p1[1]);       
-        char father[2];   
-        read(p2[0],father,1);
-        printf("%d: received pong\n",getpid());
-        close(p2[0]);
+#include "user.h"
+   
+int main(int argc,char* argv[]) {
+    int ptoc[2];//parent to child
+    int ctop[2];//child to parent
+    pipe(ptoc);
+    pipe(ctop);
+    char buffer[10];
+    if (fork() == 0) {
+        //child
+        close(ptoc[1]);//关闭parent to child写端
+        read(ptoc[0],&buffer,sizeof(buffer));
+        close(ptoc[0]);//读取完成，关闭parent to child读端
+        printf("%d: received %s\n",getpid(),buffer);
+        close(ctop[0]);//关闭child to parent读端
+        write(ctop[1],"pong",sizeof("pong"));
+        close(ctop[1]);//写入完成，关闭child to parent写端
+        exit(0);
     }
+    //parent
+    close(ptoc[0]);//关闭parent to child读端
+    write(ptoc[1],"ping",sizeof("ping"));
+    close(ptoc[1]);//读取完成，关闭parent to child写端
+    wait(0);
+    close(ctop[1]);//关闭child to parent写端
+    read(ctop[0],&buffer,sizeof(buffer));
+    close(ctop[0]);//写入完成，关闭child to parent读端
+    printf("%d: received %s\n",getpid(),buffer);
     exit(0);
 }
