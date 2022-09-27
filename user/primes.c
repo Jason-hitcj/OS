@@ -29,11 +29,10 @@ void primes(int pd[])
             primes(pd);
         }
     }
-    // close(pd[0]);
-    // close(pd[1]);
-    // close(p[0]);
-    // close(p[1]);
-    // break;
+    close(pd[0]);
+    close(pd[1]);
+    close(p[0]);
+    close(p[1]);
 }
 
 int main(int argc,char* argv[]) {
