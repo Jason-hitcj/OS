@@ -4,43 +4,36 @@
 
 void primes(int pd[])
 {
-    int front,next;
+    int front,next,i;
     int p[2];
-    while(1){
-        if (read(pd[0],&front,sizeof(int)))
+    if (read(pd[0],&front,sizeof(int)) && front)
+    {
+        printf("prime %d\n",front);
+        pipe(p);
+        if (fork() == 0)
         {
-            printf("prime %d\n",front);
-            pipe(p);
-            if (fork() == 0)
-            {
-                close(pd[0]);
-                close(pd[1]);
-                pd[0] = p[0];
-                pd[1] = p[1];
-                continue;
-                // while(read(p[0], &next, sizeof(int)))
-                // {
-                //     close(p[0]);
-                //     if (next % front != 0)
-                //     {
-                //     // 写入管道
-                //     write(p[1], &next, sizeof(int));
-                //     }
-                //     close(p[1]);
-                // }
+            while (read(pd[0], &next, sizeof(int))&& next){
+            if (next % front != 0)
+                write(p[1], &next, sizeof(int));  
             }
-            
-            while (read(pd[0], &next, sizeof(int))){
-                if (next % front != 0)
-                    write(p[1], &next, sizeof(int));  
-            }
+            i = 0;
+            write(p[1], &i, sizeof(int));
+            close(p[1]);
         }
-        close(pd[0]);
-        close(pd[1]);
-        close(p[0]);
-        close(p[1]);
-        break;
-    }   
+        else {
+            wait(NULL);
+            close(pd[0]);
+            close(pd[1]);
+            pd[0] = p[0];
+            pd[1] = p[1];
+            primes(pd);
+        }
+    }
+    // close(pd[0]);
+    // close(pd[1]);
+    // close(p[0]);
+    // close(p[1]);
+    // break;
 }
 
 int main(int argc,char* argv[]) {
@@ -53,13 +46,11 @@ int main(int argc,char* argv[]) {
         }
         i = 0;
         write(fp[1], &i, sizeof(int));
-        // close(fp[1]);
+        close(fp[1]);
     }
     else{
         wait(NULL);
-        
         primes(fp);
-        printf("1\n");
     }
     exit(0);
 }
