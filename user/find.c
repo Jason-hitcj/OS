@@ -4,36 +4,26 @@
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
 
-char *target;
+char *filename;
 
-// char*
-// fmtname(char *path)
-// {
-//   static char buf[DIRSIZ+1];
-//   char *p;
+char*
+fmtname(char *path)
+{
+  static char buf[DIRSIZ+1];
+  char *p;
 
-//   // Find first character after last slash.
-//   for(p=path+strlen(path); p >= path && *p != '/'; p--)
-//     ;
-//   p++;
+  // Find first character after last slash.
+  for(p=path+strlen(path); p >= path && *p != '/'; p--)
+    ;
+  p++;
 
-//   // Return blank-padded name.
-//   if(strlen(p) >= DIRSIZ)
-//     return p;
-//   memmove(buf, p, strlen(p));
-//   memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
-//   return buf;
-// }
-char *
-fmtname(char *path) {
-    char *p = path;
-    while (*p)
-        p++;
-    while (*p != '/' && p != path)
-        p--;
-    return p == path ? p : ++p;
+  // Return blank-padded name.
+  //排除末尾/0影响
+  memmove(buf, p, strlen(p) + 1);
+  return buf;
 }
 
+//仿照ls访问文件目录方式，递归寻找符合文件
 void
 find(char *path)
 {
@@ -55,7 +45,7 @@ find(char *path)
 
   switch(st.type){
   case T_FILE:
-    if (strcmp(fmtname(path), target) == 0) {
+    if (strcmp(fmtname(path), filename) == 0) {
                 printf("%s\n", path);
             }
     break;
@@ -68,23 +58,16 @@ find(char *path)
     strcpy(buf, path);
     p = buf+strlen(buf);
     *p++ = '/';
-    // while(read(fd, &de, sizeof(de)) == sizeof(de)){
-    //   if(de.inum == 0)
-    //     continue;
-    //   memmove(p, de.name, DIRSIZ);
-    //   p[DIRSIZ] = 0;
-    //   if(stat(buf, &st) < 0){
-    //     printf("ls: cannot stat %s\n", buf);
-    //     continue;
-    //   }
-    //   printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
-    // }
-    while (read(fd, &de, sizeof(de)) == sizeof(de)) {
-        if (de.inum == 0 || strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
-            continue;
-        memmove(p, de.name, DIRSIZ);
-        p[DIRSIZ] = 0;
-        find(buf);
+    while(read(fd, &de, sizeof(de)) == sizeof(de)){
+      if(de.inum == 0)
+        continue;
+      memmove(p, de.name, DIRSIZ);
+      p[DIRSIZ] = 0;
+      //不要递归进入.和..
+      if(strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
+        continue;
+      //使用递归允许find进入到子目录
+      find(buf);
     }
     break;
   }
@@ -96,7 +79,7 @@ int main(int argc,char* argv[]) {
         fprintf(2, "Usage: find path filename\n");
         exit(1);
     }
-    target = argv[2];
+    filename = argv[2];
     find(argv[1]);
     exit(0);
 }
