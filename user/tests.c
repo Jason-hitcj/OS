@@ -73,3 +73,19 @@
 //     }
 //     exit(0);
 // }
+#include "kernel/types.h"
+#include "user.h"
+#include "stddef.h"
+int main(int argc,char* argv[]) {
+    // int a[10];
+    int i;
+    i=0;
+ 
+    for (i=0;i<argc;i++){
+        
+        printf("%s\n",argv[i]);
+    }
+    printf("Done\n");
+    printf("%d\n",argc);
+    exit(0);
+}
