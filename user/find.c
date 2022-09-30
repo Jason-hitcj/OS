@@ -45,6 +45,7 @@ find(char *path)
 
   switch(st.type){
   case T_FILE:
+    //将文件名与路径名匹配，若相同则输出
     if (strcmp(fmtname(path), filename) == 0) {
                 printf("%s\n", path);
             }
