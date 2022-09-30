@@ -28,13 +28,12 @@ int main(int argc, char *argv[]){
         {
             if (read(0, &buf_char, 1)== 0) // 如果标准输入中没有数据,跳出所有循环（这里直接用exit实现）
                 exit(0);
-            if (buf_char == ' ' || buf_char == '\n')
+            if (buf_char == '\n')
             {
                 buf[buf_cnt++] = 0; //最后一个参数置为0
                 argvs[index++] = &buf[arg_begin]; //将每个参数开始地址存入argvs
                 arg_begin = buf_cnt; //下一个参数开始为上一个参数结束位置+1
-                if (buf_char == '\n')
-                    break; //读取结束，跳出循环
+                break; //读取结束，跳出循环
             } 
             else
             {
