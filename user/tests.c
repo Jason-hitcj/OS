@@ -73,19 +73,26 @@
 //     }
 //     exit(0);
 // }
-#include "kernel/types.h"
-#include "user.h"
-#include "stddef.h"
-int main(int argc,char* argv[]) {
-    // int a[10];
-    int i;
-    i=0;
- 
-    for (i=0;i<argc;i++){
-        
-        printf("%s\n",argv[i]);
+#include <stdio.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+int main(){
+    int child_pid;
+    if((child_pid=fork())==0){
+    while(1);
+        printf("forbidden zone\n");
+        exit(0);
     }
-    printf("Done\n");
-    printf("%d\n",argc);
-    exit(0);
-}
+    else{
+        printf(“received a signal\n”)
+        while(getc(stdin)){
+            kill(child_pid,SIGKILL);
+            printf(“received a signal\n”); 
+            wait(0);
+            exit(0);
+        }
+    }
+ }
