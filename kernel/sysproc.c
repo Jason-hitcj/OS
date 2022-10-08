@@ -99,11 +99,7 @@ sys_uptime(void)
 uint64
 sys_trace(void)
 {
-  uint mask;
-
-  if(argint(0, (int*)&mask) < 0){
+  if(argint(0, &myproc()->trace_mask) < 0){
     return -1;}
-  struct proc *p = myproc();
-  p->trace_mask |= mask;
   return 0;
 }
