@@ -116,6 +116,7 @@ sys_sysinfo(void)
   }
   kinfo.freemem = kfreemem();
   kinfo.nproc = nproc();
+  kinfo.freefd = freefd();
   if(copyout(p->pagetable, info, (char*)&kinfo, sizeof(kinfo)) < 0){
     return -1;
   }

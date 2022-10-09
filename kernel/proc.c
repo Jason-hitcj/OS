@@ -710,11 +710,13 @@ nproc(void)
 
 uint64
 freefd(void){
-  struct proc *p;
+
   uint64 count = 0;
-  for(p = proc; p < &proc[NPROC]; p++){
-       if(p->ofile[0]!=0)
+  struct file **f;
+  f = myproc()->ofile;
+  for(int i=0; i<NOFILE; i++){
+       if(!f[i])
           count++;
   }
-  return NOFILE-count;
+  return count;
 }
