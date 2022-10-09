@@ -165,11 +165,14 @@ syscall(void)
   struct proc *p = myproc();
 
   num = p->trapframe->a7;
+  //a0寄存器存储的是用户态传来的第一个参数
   arg0 = p->trapframe->a0;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    //用临时变量temp存储函数返回值，方便输出
     uint64 temp = syscalls[num]();
     p->trapframe->a0 = temp;
     if ((1<<num)&p->trace_mask){
+      //syscall_name[]数组存储的是系统调用函数名称
       printf("%d: sys_%s(%d) -> %d\n",p->pid,syscall_name[num],arg0,temp);
     }
   } else {

@@ -81,18 +81,21 @@ kalloc(void)
   return (void*)r;
 }
 
+//仿照void *kalloc(),实现freemem功能
 uint64
 kfreemem(void)
 {
   struct run *r;
   uint64 count = 0;
-
+  //加锁
   acquire(&kmem.lock);
+  //只需遍历freelist，就能得到空闲页的长度
   r = kmem.freelist;
   while(r){
     r = r->next;
     count++;
   }
   release(&kmem.lock);
+  //结果乘以页大小PGSIZE，得到空闲空间大小
   return count * PGSIZE;
 }

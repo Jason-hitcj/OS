@@ -99,7 +99,8 @@ sys_uptime(void)
 
 uint64
 sys_trace(void)
-{
+{ 
+  //将参数赋值给trace_mask
   if(argint(0, &myproc()->trace_mask) < 0){
     return -1;}
   return 0;
@@ -108,7 +109,7 @@ sys_trace(void)
 uint64
 sys_sysinfo(void)
 {
-  uint64 info; // user pointer
+  uint64 info; 
   struct sysinfo kinfo;
   struct proc *p = myproc();
   if(argaddr(0, &info) < 0){
@@ -117,6 +118,7 @@ sys_sysinfo(void)
   kinfo.freemem = kfreemem();
   kinfo.nproc = nproc();
   kinfo.freefd = freefd();
+  //使用copyout函数实现内核态与用户态参数传递
   if(copyout(p->pagetable, info, (char*)&kinfo, sizeof(kinfo)) < 0){
     return -1;
   }

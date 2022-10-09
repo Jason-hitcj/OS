@@ -696,6 +696,7 @@ procdump(void)
   }
 }
 
+//仿照procdump，遍历查看每个进程状态
 uint64
 nproc(void)
 {
@@ -708,9 +709,10 @@ nproc(void)
   return count;
 }
 
+//通过遍历文件下标查看文件标识符是否使用
 uint64
-freefd(void){
-
+freefd(void)
+{
   uint64 count = 0;
   struct file **f;
   f = myproc()->ofile;
