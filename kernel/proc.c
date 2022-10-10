@@ -714,10 +714,9 @@ uint64
 freefd(void)
 {
   uint64 count = 0;
-  struct file **f;
-  f = myproc()->ofile;
+  struct proc *p = myproc();
   for(int i=0; i<NOFILE; i++){
-       if(!f[i])
+       if(p->ofile[i] == 0)
           count++;
   }
   return count;
