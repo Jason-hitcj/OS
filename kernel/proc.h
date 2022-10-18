@@ -84,12 +84,12 @@ enum procstate { UNUSED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-  struct spinlock lock;
+  struct spinlock lock; //自旋锁：保护PCB的锁，保证互斥访问PCB
 
   // p->lock must be held when using these:
   enum procstate state;        // Process state
   struct proc *parent;         // Parent process
-  void *chan;                  // If non-zero, sleeping on chan
+  void *chan;                  // If non-zero, sleeping on chan 用于进程的阻塞和唤醒
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
@@ -98,8 +98,8 @@ struct proc {
   uint64 kstack;               // Virtual address of kernel stack
   uint64 sz;                   // Size of process memory (bytes)
   pagetable_t pagetable;       // User page table
-  struct trapframe *trapframe; // data page for trampoline.S
-  struct context context;      // swtch() here to run process
+  struct trapframe *trapframe; // data page for trampoline.S 用户态/内核态切换上下文
+  struct context context;      // swtch() here to run process 进程之间切换上下文
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
