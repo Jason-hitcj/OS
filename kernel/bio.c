@@ -156,7 +156,7 @@ brelse(struct buf *b)
 
   releasesleep(&b->lock);
   int hash = b->blockno % NBUCKETS;
-  acquire(&bcache.lock);
+  acquire(&bcache.lock[hash]);
   b->refcnt--;
   if (b->refcnt == 0) {
     // no one is waiting for it.
@@ -168,7 +168,7 @@ brelse(struct buf *b)
     bcache.hashbucket[hash].next = b;
   }
   
-  release(&bcache.lock);
+  release(&bcache.lock[hash]);
 }
 
 void
