@@ -29,6 +29,7 @@ struct kmem kmems[NCPU];
 void
 kinit()
 {
+  //给每个CPU初始化一个lock
   for(int i=0; i<NCPU; i++){
       initlock(&kmems[i].lock, "kmem");
   }
@@ -42,7 +43,7 @@ freerange(void *pa_start, void *pa_end)
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
-    kfreeinit(p);
+    kfreeinit(p); //重写kfree，为每个CPU新建独立的freelist
 }
 
 void
@@ -58,7 +59,9 @@ kfreeinit(void *pa)
 
   r = (struct run*)pa;
   int cpu_num,cpu_size;
+  //将空间均分为NCPU份
   cpu_size = ((void*)PHYSTOP - (void*)end)/NCPU;
+  //根据取整结果确定cpu号，然后分配freelist
   cpu_num = (pa - (void*)end)/cpu_size;
 
   acquire(&kmems[cpu_num].lock);
@@ -112,23 +115,25 @@ kalloc(void)
   r = kmems[cpu_num].freelist;
   if(r)
     kmems[cpu_num].freelist = r->next;
-  else{
+  release(&kmems[cpu_num].lock);
+  if(!r){
+    //如果本cpu的freelist没有，则遍历其他cpu，从其他CPU的freelist中窃取内存块
     for(int i = 0 ; i < NCPU ; i++)
     {
       if(i == cpu_num) 
-        continue;
+        continue;   //跳过自己
       acquire(&kmems[i].lock);//上锁
       r = kmems[i].freelist;
       if(r)
       {
         kmems[i].freelist = r->next;
         release(&kmems[i].lock);//解锁
-        break;
+        break;  //找到直接跳出循环
       }
       release(&kmems[i].lock);//解锁
     }
   }
-  release(&kmems[cpu_num].lock);
+
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
