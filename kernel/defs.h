@@ -183,6 +183,7 @@ int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             test_pagetable();
 void            vmprint(pagetable_t);
 pte_t *         walk(pagetable_t, uint64, int);
+void            user_k_copy(pagetable_t, pagetable_t, uint64, uint64);
 
 // plic.c
 void            plicinit(void);

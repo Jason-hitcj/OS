@@ -449,6 +449,7 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
   return 0;
 }
 
+
 // Copy a null-terminated string from user to kernel.
 // Copy bytes to dst from virtual address srcva in a given page table,
 // until a '\0', or max.
@@ -490,6 +491,21 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+void
+user_k_copy(pagetable_t u, pagetable_t k, uint64 start, uint64 end)
+{
+  
+  pte_t *user;
+  pte_t *kernel;
+  for(uint64 i = start; i < end; i += PGSIZE)
+  {
+    user = walk(u, i, 0);
+    kernel = walk(k, i, 1);
+    *kernel = (*user) & (~PTE_U);
+  }
+
 }
 
 // check if use global kpgtbl or not 
