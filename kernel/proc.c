@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -34,14 +35,14 @@ procinit(void)
       // Allocate a page for the process's kernel stack.
       // Map it high in memory, followed by an invalid
       // guard page.
-      char *pa = kalloc();
-      if(pa == 0)
-        panic("kalloc");
-      uint64 va = KSTACK((int) (p - proc));
-      kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-      p->kstack = va;
+      // char *pa = kalloc();
+      // if(pa == 0)
+      //   panic("kalloc");
+      // uint64 va = KSTACK((int) (p - proc));
+      // kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+      // p->kstack = va;
   }
-  kvminithart();
+  // kvminithart();
 }
 
 // Must be called with interrupts disabled,
@@ -121,6 +122,22 @@ found:
     return 0;
   }
 
+  p->k_pagetable = kpageinit();
+  if(p->k_pagetable == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  char *pa = kalloc();
+  if(pa == 0)
+    panic("allocproc:kalloc");
+  //有了单独页表，只需在MAXVA-trampoline-trapframe-heap后分配内核栈
+  uint64 va = MAXVA - 4*PGSIZE;
+  kvmmap_new(p->k_pagetable,va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+  p->kstack = va;
+  
+
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -129,6 +146,38 @@ found:
 
   return p;
 }
+
+void 
+free_k_pagetable(pagetable_t pagetable)
+{
+  //仿照kernel/vm.c中的freewalk的遍历方式
+  for(int i = 0; i < 512; ++i)
+  {
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0)
+    {
+      pagetable[i] = 0;
+      uint64 child = PTE2PA(pte);
+      free_k_pagetable((pagetable_t)child);
+    } else if(pte & PTE_V){
+      pagetable[i] = 0;
+    }
+  }
+  kfree((void *)pagetable);
+}
+
+void 
+proc_free_k_pagetable(struct proc *p)
+{
+  if(p->kstack)
+  {
+    pte_t *pte = walk(p->k_pagetable, p->kstack, 0);
+    kfree((void *)PTE2PA(*pte));
+    p->kstack = 0;
+  }
+  free_k_pagetable(p->k_pagetable);
+}
+
 
 // free a proc structure and the data hanging from it,
 // including user pages.
@@ -142,6 +191,11 @@ freeproc(struct proc *p)
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
+
+  if(p->k_pagetable)
+    proc_free_k_pagetable(p);
+  p->k_pagetable = 0;
+  
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
@@ -473,7 +527,16 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        //借鉴 kvminithart()的页表载入方式），在调用 w_satp() 之后调用 sfence_vma()
+        //切换到进程内核页表
+        w_satp(MAKE_SATP(p->k_pagetable)); 
+        sfence_vma(); 
+
         swtch(&c->context, &p->context);
+
+        //切回全局内核页表
+        kvminithart();
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
