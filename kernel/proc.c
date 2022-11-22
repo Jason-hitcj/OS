@@ -35,12 +35,13 @@ procinit(void)
       // Allocate a page for the process's kernel stack.
       // Map it high in memory, followed by an invalid
       // guard page.
-      // char *pa = kalloc();
-      // if(pa == 0)
-      //   panic("kalloc");
-      // uint64 va = KSTACK((int) (p - proc));
-      // kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-      // p->kstack = va;
+      char *pa = kalloc();
+      if(pa == 0)
+        panic("kalloc");
+      uint64 va = KSTACK((int) (p - proc));
+      kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+      p->kstack = va; // 将内核栈的虚拟地址存储于进程控制块
+      p->kstack_pa = (uint64)pa;
   }
   // kvminithart();
 }
@@ -129,13 +130,7 @@ found:
     return 0;
   }
 
-  char *pa = kalloc();
-  if(pa == 0)
-    panic("allocproc:kalloc");
-  //有了单独页表，只需在MAXVA-trampoline-trapframe-heap后分配内核栈
-  uint64 va = MAXVA - 4*PGSIZE;
-  kvmmap_new(p->k_pagetable,va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-  p->kstack = va;
+   kvmmap_new(p->k_pagetable, p->kstack, p->kstack_pa, PGSIZE, PTE_R | PTE_W);
   
 
   // Set up new context to start executing at forkret,
@@ -166,18 +161,6 @@ free_k_pagetable(pagetable_t pagetable)
   kfree((void *)pagetable);
 }
 
-void 
-proc_free_k_pagetable(struct proc *p)
-{
-  if(p->kstack)
-  {
-    pte_t *pte = walk(p->k_pagetable, p->kstack, 0);
-    kfree((void *)PTE2PA(*pte));
-    p->kstack = 0;
-  }
-  free_k_pagetable(p->k_pagetable);
-}
-
 
 // free a proc structure and the data hanging from it,
 // including user pages.
@@ -193,7 +176,7 @@ freeproc(struct proc *p)
   p->pagetable = 0;
 
   if(p->k_pagetable)
-    proc_free_k_pagetable(p);
+    free_k_pagetable(p->k_pagetable);
   p->k_pagetable = 0;
   
   p->sz = 0;
